@@ -8,78 +8,102 @@ import { GrabControlBar } from "./grab-control-bar";
 const BAR_HEIGHT = 36;
 const BAR_WIDTH = 108;
 const INITIAL_BAR_POSITION = {
-    x: (Dimensions.get("window").width - BAR_WIDTH) / 2,
-    y: 72,
+  x: (Dimensions.get("window").width - BAR_WIDTH) / 2,
+  y: 72,
 };
 const clamp = (value, min, max) => {
-    return Math.min(Math.max(value, min), max);
+  return Math.min(Math.max(value, min), max);
 };
 export const ReactNativeGrabRootControls = () => {
-    const state = useGrabControllerState();
-    const controlBarPosition = useRef(new Animated.ValueXY(INITIAL_BAR_POSITION)).current;
-    const shouldResetControlBarPositionRef = useRef(false);
-    const isControlBarVisible = state.isMenuVisible && state.selectionSessionOwnerId === null && state.selectedOwnerId === null;
-    const toggleMenuVisibility = useCallback(() => {
-        shouldResetControlBarPositionRef.current = state.isMenuVisible;
-        toggleGrabMenu();
-    }, [state.isMenuVisible]);
-    const resetControlBarPosition = useCallback(() => {
-        if (!shouldResetControlBarPositionRef.current) {
-            return;
-        }
-        shouldResetControlBarPositionRef.current = false;
-        controlBarPosition.setValue(INITIAL_BAR_POSITION);
-    }, [controlBarPosition]);
-    useDevMenu(toggleMenuVisibility);
-    const dragHandlePanResponder = useRef(PanResponder.create({
-        onStartShouldSetPanResponder: () => true,
-        onMoveShouldSetPanResponder: (_, gestureState) => Math.abs(gestureState.dx) > 2 || Math.abs(gestureState.dy) > 2,
-        onPanResponderGrant: () => {
-            controlBarPosition.stopAnimation((value) => {
-                controlBarPosition.setOffset(value);
-                controlBarPosition.setValue({ x: 0, y: 0 });
-            });
-        },
-        onPanResponderMove: Animated.event([null, { dx: controlBarPosition.x, dy: controlBarPosition.y }], { useNativeDriver: false }),
-        onPanResponderRelease: () => {
-            controlBarPosition.flattenOffset();
-            controlBarPosition.stopAnimation((value) => {
-                const { width, height } = Dimensions.get("window");
-                controlBarPosition.setValue({
-                    x: clamp(value.x, 0, Math.max(0, width - BAR_WIDTH)),
-                    y: clamp(value.y, 0, Math.max(0, height - BAR_HEIGHT)),
-                });
-            });
-        },
-        onPanResponderTerminate: () => {
-            controlBarPosition.flattenOffset();
-            controlBarPosition.stopAnimation((value) => {
-                const { width, height } = Dimensions.get("window");
-                controlBarPosition.setValue({
-                    x: clamp(value.x, 0, Math.max(0, width - BAR_WIDTH)),
-                    y: clamp(value.y, 0, Math.max(0, height - BAR_HEIGHT)),
-                });
-            });
-        },
-    })).current;
-    const containerStyle = useMemo(() => [
-        styles.controlBar,
-        {
-            transform: controlBarPosition.getTranslateTransform(),
-        },
-    ], [controlBarPosition]);
-    return (_jsx(FullScreenOverlay, { children: _jsx(View, { pointerEvents: "box-none", style: styles.overlayRoot, children: _jsx(GrabControlBar, { containerStyle: containerStyle, dragHandlePanHandlers: dragHandlePanResponder.panHandlers, isSessionEnabled: state.selectionSessionOwnerId !== null, isVisible: isControlBarVisible, onHidden: resetControlBarPosition, onPressHide: toggleMenuVisibility, onPressSelect: enableGrabbing }) }) }));
+  const state = useGrabControllerState();
+  const controlBarPosition = useRef(new Animated.ValueXY(INITIAL_BAR_POSITION)).current;
+  const shouldResetControlBarPositionRef = useRef(false);
+  const isControlBarVisible =
+    state.isMenuVisible && state.selectionSessionOwnerId === null && state.selectedOwnerId === null;
+  const toggleMenuVisibility = useCallback(() => {
+    shouldResetControlBarPositionRef.current = state.isMenuVisible;
+    toggleGrabMenu();
+  }, [state.isMenuVisible]);
+  const resetControlBarPosition = useCallback(() => {
+    if (!shouldResetControlBarPositionRef.current) {
+      return;
+    }
+    shouldResetControlBarPositionRef.current = false;
+    controlBarPosition.setValue(INITIAL_BAR_POSITION);
+  }, [controlBarPosition]);
+  useDevMenu(toggleMenuVisibility);
+  const dragHandlePanResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gestureState) =>
+        Math.abs(gestureState.dx) > 2 || Math.abs(gestureState.dy) > 2,
+      onPanResponderGrant: () => {
+        controlBarPosition.stopAnimation((value) => {
+          controlBarPosition.setOffset(value);
+          controlBarPosition.setValue({ x: 0, y: 0 });
+        });
+      },
+      onPanResponderMove: Animated.event(
+        [null, { dx: controlBarPosition.x, dy: controlBarPosition.y }],
+        { useNativeDriver: false },
+      ),
+      onPanResponderRelease: () => {
+        controlBarPosition.flattenOffset();
+        controlBarPosition.stopAnimation((value) => {
+          const { width, height } = Dimensions.get("window");
+          controlBarPosition.setValue({
+            x: clamp(value.x, 0, Math.max(0, width - BAR_WIDTH)),
+            y: clamp(value.y, 0, Math.max(0, height - BAR_HEIGHT)),
+          });
+        });
+      },
+      onPanResponderTerminate: () => {
+        controlBarPosition.flattenOffset();
+        controlBarPosition.stopAnimation((value) => {
+          const { width, height } = Dimensions.get("window");
+          controlBarPosition.setValue({
+            x: clamp(value.x, 0, Math.max(0, width - BAR_WIDTH)),
+            y: clamp(value.y, 0, Math.max(0, height - BAR_HEIGHT)),
+          });
+        });
+      },
+    }),
+  ).current;
+  const containerStyle = useMemo(
+    () => [
+      styles.controlBar,
+      {
+        transform: controlBarPosition.getTranslateTransform(),
+      },
+    ],
+    [controlBarPosition],
+  );
+  return _jsx(FullScreenOverlay, {
+    children: _jsx(View, {
+      pointerEvents: "box-none",
+      style: styles.overlayRoot,
+      children: _jsx(GrabControlBar, {
+        containerStyle: containerStyle,
+        dragHandlePanHandlers: dragHandlePanResponder.panHandlers,
+        isSessionEnabled: state.selectionSessionOwnerId !== null,
+        isVisible: isControlBarVisible,
+        onHidden: resetControlBarPosition,
+        onPressHide: toggleMenuVisibility,
+        onPressSelect: enableGrabbing,
+      }),
+    }),
+  });
 };
 const styles = StyleSheet.create({
-    overlayRoot: {
-        ...StyleSheet.absoluteFillObject,
-        zIndex: 9999,
-    },
-    controlBar: {
-        position: "absolute",
-        top: 0,
-        left: 0,
-        zIndex: 2,
-    },
+  overlayRoot: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 9999,
+  },
+  controlBar: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    zIndex: 2,
+  },
 });
 //# sourceMappingURL=grab-root-controls.js.map

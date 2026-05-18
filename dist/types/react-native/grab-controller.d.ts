@@ -1,14 +1,17 @@
 type LocalGrabSelectionController = {
-    closeSelectionMenu: () => void;
-    startSelection: () => void;
-    stopSelection: () => void;
+  closeSelectionMenu: () => void;
+  startSelection: () => void;
+  stopSelection: () => void;
 };
 type GrabControllerState = {
-    isMenuVisible: boolean;
-    selectedOwnerId: string | null;
-    selectionSessionOwnerId: string | null;
+  isMenuVisible: boolean;
+  selectedOwnerId: string | null;
+  selectionSessionOwnerId: string | null;
 };
-export declare const registerLocalGrabSelectionController: (ownerId: string, controller: LocalGrabSelectionController) => void;
+export declare const registerLocalGrabSelectionController: (
+  ownerId: string,
+  controller: LocalGrabSelectionController,
+) => void;
 export declare const unregisterLocalGrabSelectionController: (ownerId: string) => void;
 export declare const useGrabControllerState: () => GrabControllerState;
 export declare const setGrabSelectionSessionOwner: (ownerId: string | null) => void;
