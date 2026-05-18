@@ -1,10 +1,12 @@
 import type { ReactNativeGrabRootProps } from "./grab-root";
 import type { ReactNativeGrabScreenProps } from "./grab-screen";
+import type { ReactNativeGrabModalProps } from "./grab-modal";
 import type { ReactNativeGrabContextProviderProps } from "./grab-context";
 import type { ReactNode } from "react";
 
 export type { ReactNativeGrabRootProps } from "./grab-root";
 export type { ReactNativeGrabScreenProps } from "./grab-screen";
+export type { ReactNativeGrabModalProps } from "./grab-modal";
 export type {
   ReactNativeGrabContextProviderProps,
   ReactNativeGrabContextValue,
@@ -21,6 +23,10 @@ export const ReactNativeGrabScreen: React.ComponentType<ReactNativeGrabScreenPro
   ? require("./grab-screen").ReactNativeGrabScreen
   : Passthrough;
 
+export const ReactNativeGrabModal: React.ComponentType<ReactNativeGrabModalProps> = __DEV__
+  ? require("./grab-modal").ReactNativeGrabModal
+  : Passthrough;
+
 export const ReactNativeGrabContextProvider: React.ComponentType<ReactNativeGrabContextProviderProps> =
   __DEV__ ? require("./grab-context").ReactNativeGrabContextProvider : Passthrough;
 
@@ -31,3 +37,8 @@ export const enableGrabbing: () => void = __DEV__
 export const setFocusEffect: (impl: (cb: () => void) => void) => void = __DEV__
   ? require("./focus-effect").setFocusEffect
   : noop;
+
+if (__DEV__) {
+  const patchModal = require("./patch-modal").patchReactNativeModal;
+  patchModal(ReactNativeGrabModal);
+}

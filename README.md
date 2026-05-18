@@ -33,7 +33,8 @@ npm install react-native-grab
 1. Add React Native Grab middleware to Metro.
 2. Wrap your app root with `ReactNativeGrabRoot`.
 3. **If your app uses native navigators** (e.g. native stack, native tabs), **wrap each screen** with `ReactNativeGrabScreen`.
-4. Open Dev Menu and choose `React Native Grab` to start selecting elements.
+4. **If your app uses React Native `<Modal>`s**, **wrap the content inside the Modal** with `ReactNativeGrabModal`.
+5. Open Dev Menu and choose `React Native Grab` to start selecting elements.
 
 ## Quick Configuration Example
 
@@ -49,6 +50,7 @@ module.exports = withReactNativeGrab(config);
 import {
   ReactNativeGrabRoot,
   ReactNativeGrabScreen,
+  ReactNativeGrabModal,
   ReactNativeGrabContextProvider,
 } from "react-native-grab";
 
@@ -58,6 +60,11 @@ function HomeScreen() {
     <ReactNativeGrabScreen>
       <ReactNativeGrabContextProvider value={{ screen: "home" }}>
         {/* screen content */}
+        <Modal visible={true}>
+          <ReactNativeGrabModal>
+            {/* modal content */}
+          </ReactNativeGrabModal>
+        </Modal>
       </ReactNativeGrabContextProvider>
     </ReactNativeGrabScreen>
   );
@@ -72,6 +79,7 @@ export default function AppLayout() {
 
 - `ReactNativeGrabRoot`: Root-level provider for grab functionality.
 - `ReactNativeGrabScreen`: When using native navigators (native stack, native tabs), wrap **each screen** with this component for accurate selection.
+- `ReactNativeGrabModal`: Wrap the content of a React Native `<Modal>` to support selecting elements within it.
 - `ReactNativeGrabContextProvider`: Adds custom metadata to grabbed elements. Nested providers are shallow-merged and child keys override parent keys. This provider is a no-op in production builds.
 - `enableGrabbing()`: Programmatically enables grabbing flow.
 - `setFocusEffect(impl)`: Overrides the hook used by `ReactNativeGrabScreen` to detect when a screen is focused. By default the library auto-detects `useFocusEffect` from `expo-router` or `@react-navigation/native`. Call `setFocusEffect` once at app startup when neither package is present (e.g. a custom router) or when you want explicit control over which implementation is used.

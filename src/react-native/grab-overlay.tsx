@@ -144,14 +144,17 @@ export const ReactNativeGrabOverlay = ({
       return null;
     }
 
-    const internalNode = findNodeAtPoint(owner.shadowNode, pageX, pageY);
+    const ownerRect = measureInWindow(owner.shadowNode);
+    const localX = pageX - ownerRect[0];
+    const localY = pageY - ownerRect[1];
+
+    const internalNode = findNodeAtPoint(owner.shadowNode, localX, localY);
     const shadowNode = internalNode?.stateNode?.node;
 
     if (!shadowNode) {
       return null;
     }
 
-    const ownerRect = measureInWindow(owner.shadowNode);
     const rect = nativeFabricUIManager.getBoundingClientRect(shadowNode, true);
     return {
       fiberNode: internalNode,

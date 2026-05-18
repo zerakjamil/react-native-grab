@@ -3,7 +3,7 @@ import { findNodeHandle, type ReactNativeElement } from "react-native";
 import type { ReactNativeShadowNode } from "./types";
 import { getFabricUIManager } from "./fabric";
 
-export type GrabSelectionOwnerKind = "root" | "screen";
+export type GrabSelectionOwnerKind = "root" | "screen" | "modal";
 
 export type GrabSelectionOwner = {
   id: string;
@@ -14,12 +14,12 @@ export type GrabSelectionOwner = {
 
 type SelectionOwnersStoreSnapshot = {
   owners: Map<string, GrabSelectionOwner>;
-  focusedScreenOwnerId: string | null;
+  focusedOwnerIds: string[];
 };
 
 let ownerIdCounter = 0;
 let registrationOrder = 0;
-let focusedScreenOwnerId: string | null = null;
+let focusedOwnerIds: string[] = [];
 const owners = new Map<string, GrabSelectionOwner>();
 const listeners = new Set<() => void>();
 
@@ -38,7 +38,7 @@ const subscribe = (listener: () => void) => {
 
 const getSnapshot = (): SelectionOwnersStoreSnapshot => ({
   owners: new Map(owners),
-  focusedScreenOwnerId,
+  focusedOwnerIds,
 });
 
 const getOwnerShadowNode = (ref: ReactNativeElement, errorMessage: string) => {
@@ -92,35 +92,30 @@ export const unregisterGrabSelectionOwner = (id: string) => {
   }
 
   owners.delete(id);
-
-  if (focusedScreenOwnerId === id) {
-    focusedScreenOwnerId = null;
-  }
+  focusedOwnerIds = focusedOwnerIds.filter((ownerId) => ownerId !== id);
 
   notify();
 };
 
 export const setGrabSelectionOwnerFocused = (id: string, isFocused: boolean) => {
   const owner = owners.get(id);
-  if (!owner || owner.kind !== "screen") {
+  if (!owner || (owner.kind !== "screen" && owner.kind !== "modal")) {
     return;
   }
 
   if (isFocused) {
-    focusedScreenOwnerId = id;
-  } else if (focusedScreenOwnerId === id) {
-    focusedScreenOwnerId = null;
+    if (!focusedOwnerIds.includes(id)) {
+      focusedOwnerIds.push(id);
+    }
+  } else {
+    focusedOwnerIds = focusedOwnerIds.filter((ownerId) => ownerId !== id);
   }
 
   notify();
 };
 
 export const clearGrabSelectionOwnerFocus = (id: string) => {
-  if (focusedScreenOwnerId !== id) {
-    return;
-  }
-
-  focusedScreenOwnerId = null;
+  focusedOwnerIds = focusedOwnerIds.filter((ownerId) => ownerId !== id);
   notify();
 };
 
@@ -129,8 +124,8 @@ export const getGrabSelectionOwner = (id: string): GrabSelectionOwner | null => 
 };
 
 export const getResolvedGrabSelectionOwner = (): GrabSelectionOwner | null => {
-  if (focusedScreenOwnerId) {
-    const focusedOwner = owners.get(focusedScreenOwnerId);
+  for (let i = focusedOwnerIds.length - 1; i >= 0; i--) {
+    const focusedOwner = owners.get(focusedOwnerIds[i]);
     if (focusedOwner) {
       return focusedOwner;
     }
