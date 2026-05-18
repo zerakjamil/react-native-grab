@@ -268,6 +268,7 @@ const styles = react_native_1.StyleSheet.create({
     overlayRoot: {
         ...react_native_1.StyleSheet.absoluteFillObject,
         zIndex: 9999,
+        elevation: 99999,
     },
     topBadge: {
         position: "absolute",

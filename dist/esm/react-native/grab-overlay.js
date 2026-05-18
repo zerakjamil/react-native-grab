@@ -264,6 +264,7 @@ const styles = StyleSheet.create({
     overlayRoot: {
         ...StyleSheet.absoluteFillObject,
         zIndex: 9999,
+        elevation: 99999,
     },
     topBadge: {
         position: "absolute",
