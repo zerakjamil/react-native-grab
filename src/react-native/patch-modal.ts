@@ -16,11 +16,7 @@ export const patchReactNativeModal = (ReactNativeGrabModal: React.ComponentType<
       return React.createElement(
         OriginalModal,
         { ...props, ref },
-        React.createElement(
-          ReactNativeGrabModal,
-          { style: { flex: 1 } },
-          props.children
-        )
+        React.createElement(ReactNativeGrabModal, { style: { flex: 1 } }, props.children),
       );
     });
 

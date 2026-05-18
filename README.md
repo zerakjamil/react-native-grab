@@ -61,9 +61,7 @@ function HomeScreen() {
       <ReactNativeGrabContextProvider value={{ screen: "home" }}>
         {/* screen content */}
         <Modal visible={true}>
-          <ReactNativeGrabModal>
-            {/* modal content */}
-          </ReactNativeGrabModal>
+          <ReactNativeGrabModal>{/* modal content */}</ReactNativeGrabModal>
         </Modal>
       </ReactNativeGrabContextProvider>
     </ReactNativeGrabScreen>
