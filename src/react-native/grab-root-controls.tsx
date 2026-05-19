@@ -27,7 +27,10 @@ export const ReactNativeGrabRootControls = () => {
   const shouldResetControlBarPositionRef = useRef(false);
 
   const isControlBarVisible =
-    state.isMenuVisible && state.selectionSessionOwnerId === null && state.selectedOwnerId === null;
+    state.isMenuVisible &&
+    (state.freeze.isActive ||
+      state.freeze.isCapturing ||
+      (state.selectionSessionOwnerId === null && state.selectedOwnerId === null));
 
   const toggleMenuVisibility = useCallback(() => {
     shouldResetControlBarPositionRef.current = state.isMenuVisible;

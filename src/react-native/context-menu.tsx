@@ -58,6 +58,7 @@ export type ContextMenuProps = {
   bounds?: ContextMenuBounds | null;
   children?: ReactNode;
   cutout?: ContextMenuCutout | null;
+  dismissOnOutsidePress?: boolean;
   horizontalAlignment?: ContextMenuHorizontalAlignment;
   offset?: ContextMenuOffset;
   onClose: () => void;
@@ -169,6 +170,7 @@ export const ContextMenu: ContextMenuComponent = ({
   bounds = null,
   children,
   cutout = null,
+  dismissOnOutsidePress = true,
   horizontalAlignment = "center",
   offset = { x: 0, y: 10 },
   onClose,
@@ -308,14 +310,15 @@ export const ContextMenu: ContextMenuComponent = ({
 
   return (
     <View pointerEvents="box-none" style={styles.overlay}>
-      {dismissalRegions.map((region) => (
-        <Pressable
-          key={`pressable-${region.key}`}
-          accessibilityLabel="Close context menu"
-          onPress={onClose}
-          style={region.style}
-        />
-      ))}
+      {dismissOnOutsidePress &&
+        dismissalRegions.map((region) => (
+          <Pressable
+            key={`pressable-${region.key}`}
+            accessibilityLabel="Close context menu"
+            onPress={onClose}
+            style={region.style}
+          />
+        ))}
 
       <ContextMenuContext.Provider value={{ onClose }}>
         <Animated.View

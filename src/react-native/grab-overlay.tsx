@@ -54,6 +54,7 @@ export const ReactNativeGrabOverlay = ({
 }: ReactNativeGrabOverlayProps) => {
   const isResolvedSelectionOwner = useIsResolvedGrabSelectionOwner(ownerId);
   const grabControllerState = useGrabControllerState();
+  const freezeState = grabControllerState.freeze;
   const copyBadgeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [bounds, setBounds] = useState({ width: 0, height: 0 });
   const [state, setState] = useState({
@@ -64,12 +65,12 @@ export const ReactNativeGrabOverlay = ({
   });
   const [showLayoutMetrics, setShowLayoutMetrics] = useState(false);
 
-  const startSession = useCallback(() => {
+  const startSession = useCallback((options?: { preserveSelection?: boolean }) => {
     setState((prev) => ({
       ...prev,
       grabbedElement: null,
       isSessionEnabled: true,
-      selectedElement: null,
+      selectedElement: options?.preserveSelection ? prev.selectedElement : null,
     }));
   }, []);
 
@@ -141,32 +142,46 @@ export const ReactNativeGrabOverlay = ({
     });
   }, [isResolvedSelectionOwner, ownerId]);
 
-  const getElementAtPoint = (
-    pageX: number,
-    pageY: number,
-  ): { fiberNode: ReactNativeFiberNode; rect: BoundingClientRect } | null => {
-    const owner = getGrabSelectionOwner(ownerId);
-    if (!owner) {
-      return null;
-    }
+  const getElementAtPoint = useCallback(
+    (
+      pageX: number,
+      pageY: number,
+    ): { fiberNode: ReactNativeFiberNode; rect: BoundingClientRect } | null => {
+      const owner = getGrabSelectionOwner(ownerId);
+      if (!owner) {
+        return null;
+      }
 
-    const ownerRect = measureInWindow(owner.shadowNode);
-    const localX = pageX - ownerRect[0];
-    const localY = pageY - ownerRect[1];
+      const ownerRect = measureInWindow(owner.shadowNode);
+      const localX = pageX - ownerRect[0];
+      const localY = pageY - ownerRect[1];
 
-    const internalNode = findNodeAtPoint(owner.shadowNode, localX, localY);
-    const shadowNode = internalNode?.stateNode?.node;
+      const internalNode = findNodeAtPoint(owner.shadowNode, localX, localY);
+      const shadowNode = internalNode?.stateNode?.node;
 
-    if (!shadowNode) {
-      return null;
-    }
+      if (!shadowNode) {
+        return null;
+      }
 
-    const rect = nativeFabricUIManager.getBoundingClientRect(shadowNode, true);
-    return {
-      fiberNode: internalNode,
-      rect: [rect[0] - ownerRect[0], rect[1] - ownerRect[1], rect[2], rect[3]],
-    };
-  };
+      const rect = nativeFabricUIManager.getBoundingClientRect(shadowNode, true);
+      return {
+        fiberNode: internalNode,
+        rect: [rect[0] - ownerRect[0], rect[1] - ownerRect[1], rect[2], rect[3]],
+      };
+    },
+    [ownerId],
+  );
+
+  const freezeStateRef = useRef(grabControllerState.freeze);
+  const selectedElementRef = useRef(state.selectedElement);
+
+  useEffect(() => {
+    freezeStateRef.current = grabControllerState.freeze;
+  }, [grabControllerState.freeze]);
+
+  useEffect(() => {
+    selectedElementRef.current = state.selectedElement;
+  }, [state.selectedElement]);
 
   const handleTouch = (nativeEvent: NativeTouchEvent) => {
     const result = getElementAtPoint(nativeEvent.pageX, nativeEvent.pageY);
@@ -221,6 +236,35 @@ export const ReactNativeGrabOverlay = ({
     };
   }, [closeSelectedElementMenu, ownerId, startSession, stopSession]);
 
+  useEffect(() => {
+    if (!freezeState.isActive) {
+      return;
+    }
+
+    if (
+      grabControllerState.selectionSessionOwnerId &&
+      grabControllerState.selectionSessionOwnerId !== ownerId
+    ) {
+      return;
+    }
+
+    if (grabControllerState.selectionSessionOwnerId !== ownerId) {
+      setGrabSelectionSessionOwner(ownerId);
+    }
+
+    if (!state.isSessionEnabled) {
+      startSession({ preserveSelection: state.selectedElement !== null });
+    }
+  }, [
+    freezeState.isActive,
+    grabControllerState.selectionSessionOwnerId,
+    grabControllerState.selectedOwnerId,
+    ownerId,
+    startSession,
+    state.isSessionEnabled,
+    state.selectedElement,
+  ]);
+
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponderCapture: () => true,
@@ -233,6 +277,12 @@ export const ReactNativeGrabOverlay = ({
           try {
             const result = getElementAtPoint(evt.nativeEvent.pageX, evt.nativeEvent.pageY);
             if (!result) {
+              if (
+                freezeStateRef.current.isActive &&
+                selectedElementRef.current !== null
+              ) {
+                closeSelectedElementMenu();
+              }
               return;
             }
 
@@ -249,11 +299,23 @@ export const ReactNativeGrabOverlay = ({
   ).current;
 
   useEffect(() => {
-    onPanHandlersChange?.(state.isSessionEnabled ? panResponder.panHandlers : null);
+    const isMenuOpen = state.selectedElement !== null;
+    const isPanEnabled = state.isSessionEnabled && !isMenuOpen;
+    const isFreezeBlocking = freezeState.isActive || freezeState.isCapturing;
+    const shouldAttachToParent = isPanEnabled && !isFreezeBlocking;
+
+    onPanHandlersChange?.(shouldAttachToParent ? panResponder.panHandlers : null);
     return () => {
       onPanHandlersChange?.(null);
     };
-  }, [onPanHandlersChange, panResponder.panHandlers, state.isSessionEnabled]);
+  }, [
+    freezeState.isActive,
+    freezeState.isCapturing,
+    onPanHandlersChange,
+    panResponder.panHandlers,
+    state.isSessionEnabled,
+    state.selectedElement,
+  ]);
 
   const handleCopySelectedElement = useCallback(async () => {
     const selectedElement = state.selectedElement;
@@ -359,7 +421,6 @@ export const ReactNativeGrabOverlay = ({
   }, [state.selectedElement]);
 
   const highlightedElement = state.grabbedElement ?? state.selectedElement?.result ?? null;
-  const freezeState = grabControllerState.freeze;
 
   const statusBadgeText = useMemo(() => {
     if (state.isCopyBadgeVisible) return "Element copied";
@@ -390,6 +451,20 @@ export const ReactNativeGrabOverlay = ({
     };
   }, [state.selectedElement]);
 
+  const isMenuOpen = state.selectedElement !== null;
+  const isFreezeBlocking = freezeState.isActive || freezeState.isCapturing;
+  const isPanEnabled = state.isSessionEnabled && !isMenuOpen;
+  const shouldBlockTouchesInOverlay = isFreezeBlocking && !isMenuOpen;
+  const overlayPointerEvents = isFreezeBlocking ? "auto" : "box-none";
+  const overlayTouchHandlers = shouldBlockTouchesInOverlay
+    ? isPanEnabled
+      ? panResponder.panHandlers
+      : {
+          onStartShouldSetResponderCapture: () => true,
+          onResponderRelease: () => {},
+        }
+    : null;
+
   if (
     !state.isSessionEnabled &&
     !state.isCopyBadgeVisible &&
@@ -404,8 +479,9 @@ export const ReactNativeGrabOverlay = ({
 
   return (
     <View
-      pointerEvents="box-none"
+      pointerEvents={overlayPointerEvents}
       style={styles.overlayRoot}
+      {...(overlayTouchHandlers ?? {})}
       onLayout={(event) => {
         const { width, height } = event.nativeEvent.layout;
         setBounds((prev) => {
