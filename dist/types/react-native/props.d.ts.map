@@ -1,0 +1,1 @@
+{"version":3,"file":"props.d.ts","sourceRoot":"","sources":["../../../src/react-native/props.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,eAAe,EAAE,MAAM,mBAAmB,CAAC;AACzD,OAAO,KAAK,EAAE,oBAAoB,EAAE,MAAM,SAAS,CAAC;AAiEpD,eAAO,MAAM,uBAAuB,GAClC,aAAa,MAAM,EACnB,OAAO,eAAe,GAAG,IAAI,KAC5B,MAOF,CAAC;AAEF,eAAO,MAAM,kBAAkB,GAAI,MAAM,oBAAoB,KAAG,MAAM,GAAG,IAQxE,CAAC"}

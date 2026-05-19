@@ -26,7 +26,7 @@ Bridge the context gap: point at the exact native UI element, capture precise so
 ## Installation
 
 ```bash
-npm install react-native-grab
+npm install react-native-grab-advanced
 ```
 
 To enable **Freeze & Inspect**, also install:
@@ -50,7 +50,7 @@ When the Grab control pill is visible, tap the **freeze** icon to capture a snap
 ```javascript
 // metro.config.js
 const { getDefaultConfig } = require("@react-native/metro-config");
-const { withReactNativeGrab } = require("react-native-grab/metro");
+const { withReactNativeGrab } = require("react-native-grab-advanced/metro");
 
 const config = getDefaultConfig(__dirname);
 module.exports = withReactNativeGrab(config);
@@ -61,7 +61,7 @@ import {
   ReactNativeGrabScreen,
   ReactNativeGrabModal,
   ReactNativeGrabContextProvider,
-} from "react-native-grab";
+} from "react-native-grab-advanced";
 
 // When using native navigators (native stack, native tabs), wrap each screen:
 function HomeScreen() {
@@ -92,7 +92,7 @@ export default function AppLayout() {
 - `setFocusEffect(impl)`: Overrides the hook used by `ReactNativeGrabScreen` to detect when a screen is focused. By default the library auto-detects `useFocusEffect` from `expo-router` or `@react-navigation/native`. Call `setFocusEffect` once at app startup when neither package is present (e.g. a custom router) or when you want explicit control over which implementation is used.
 
 ```ts
-import { setFocusEffect } from "react-native-grab";
+import { setFocusEffect } from "react-native-grab-advanced";
 import { useFocusEffect } from "my-custom-router";
 
 setFocusEffect(useFocusEffect);
@@ -117,7 +117,7 @@ If you use Expo and provide your own Dev Menu entries, you are most likely overw
 In that case, import `enableGrabbing` and call it yourself whenever you want to start grabbing.
 
 ```ts
-import { enableGrabbing } from "react-native-grab";
+import { enableGrabbing } from "react-native-grab-advanced";
 ```
 
 ## Made with ❤️ at Callstack

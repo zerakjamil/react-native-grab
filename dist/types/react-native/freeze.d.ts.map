@@ -1,0 +1,1 @@
+{"version":3,"file":"freeze.d.ts","sourceRoot":"","sources":["../../../src/react-native/freeze.ts"],"names":[],"mappings":"AAUA,MAAM,MAAM,kBAAkB,GAAG;IAC/B,GAAG,EAAE,MAAM,CAAC;IACZ,KAAK,EAAE,MAAM,CAAC;IACd,MAAM,EAAE,MAAM,CAAC;IACf,KAAK,EAAE,MAAM,CAAC;CACf,CAAC;AAUF,eAAO,MAAM,qBAAqB,QAAO,OAGxC,CAAC;AAEF,eAAO,MAAM,yBAAyB,QAAa,OAAO,CAAC,kBAAkB,CAoB5E,CAAC"}
