@@ -277,10 +277,7 @@ export const ReactNativeGrabOverlay = ({
           try {
             const result = getElementAtPoint(evt.nativeEvent.pageX, evt.nativeEvent.pageY);
             if (!result) {
-              if (
-                freezeStateRef.current.isActive &&
-                selectedElementRef.current !== null
-              ) {
+              if (freezeStateRef.current.isActive && selectedElementRef.current !== null) {
                 closeSelectedElementMenu();
               }
               return;
