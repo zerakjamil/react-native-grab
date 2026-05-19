@@ -2,11 +2,16 @@ import { useCallback, useMemo, useRef } from "react";
 import { Animated, Dimensions, PanResponder, StyleSheet, View } from "react-native";
 import { useDevMenu } from "./dev-menu";
 import { FullScreenOverlay } from "./full-screen-overlay";
-import { enableGrabbing, toggleGrabMenu, useGrabControllerState } from "./grab-controller";
+import {
+  enableGrabbing,
+  toggleGrabFreeze,
+  toggleGrabMenu,
+  useGrabControllerState,
+} from "./grab-controller";
 import { GrabControlBar } from "./grab-control-bar";
 
 const BAR_HEIGHT = 36;
-const BAR_WIDTH = 108;
+const BAR_WIDTH = 144;
 const INITIAL_BAR_POSITION = {
   x: (Dimensions.get("window").width - BAR_WIDTH) / 2,
   y: 72,
@@ -96,9 +101,12 @@ export const ReactNativeGrabRootControls = () => {
         <GrabControlBar
           containerStyle={containerStyle}
           dragHandlePanHandlers={dragHandlePanResponder.panHandlers}
+          isFreezeActive={state.freeze.isActive}
+          isFreezeCapturing={state.freeze.isCapturing}
           isSessionEnabled={state.selectionSessionOwnerId !== null}
           isVisible={isControlBarVisible}
           onHidden={resetControlBarPosition}
+          onPressFreeze={toggleGrabFreeze}
           onPressHide={toggleMenuVisibility}
           onPressSelect={enableGrabbing}
         />

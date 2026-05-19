@@ -12,7 +12,7 @@ import {
 } from "react-native";
 
 const BAR_HEIGHT = 36;
-const BAR_WIDTH = 108;
+const BAR_WIDTH = 144;
 const SLOT_WIDTH = 36;
 
 // Icons from https://lucide.dev/
@@ -22,12 +22,17 @@ const HIDE_ICON_IMAGE_URL =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAABMElEQVR4AezRy20CMRAGYJQiUkcuSQu5pNxc0kJySR1Uwf+hNQ+tx14hIS4gDzue/7UML7s7f54B0wU/bEW/eTX1mufs4OCqFXf0C97D/k4xyKN7YDi4XUIV8BX2X4qQAaNcr44ZDAeX5orgUgXsAxIQMmDEMOPj0ZvBcHBpjuDlVxWAQ0DIgBFDxkpvBsPBpVnVKACZkAEjhj8ZKr0ZDCfj/pkFUDFg9J/L21J6M1hG9dkSUKs3IFsC2s69vTdXev8DbBgzC2DAqO38M27K/s1gOBn3zyiAkAEjhm3n9q43g+HgdhOqAAJCBowYMm4mejMYDi5Nw0/PKoCAkAEjhifR0pjBcHBpFuj8qAIwCBkwcu8VDAe3h++qgI+wFYO0w4ODq1bEKmBFvHXwDJhu7gAAAP//FX4TdAAAAAZJREFUAwAkFUAxInh9owAAAABJRU5ErkJggg==";
 const INSPECT_ICON_IMAGE_URL =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAABNUlEQVR4AezUYU7DMAwFYMPFKCcDTgacDPxFc5ROZazRNu3Hor46cWy/vDTpc1y53ZxgSUGfiZ9JyH3P3P6MCkwIQNIDdnbkvmUOmyZiJHhpnoiPtE+TkJupgYRdESzNE0FJTLbKXSp/VFC+i9oHwb/beXdb5JS4KyxsKXBUoc3tVeCuOILOObjxx0TGMEXQkvL1dUCadqkQlTK+jr0KuvSs8HpA+UoZsmkFVp51QzEwVsyvBRFENttH0epXkf6zHkUFKsICMt8HjOHba+8WyalVKmrMWi0LFgCUTStQoIorqs9X34XlWxEI4GzMOidQKmwTCOWrGsYN4xYJ4JTgJGyhyKtQrV5e+fQ7RgIBSNgecKIzxsnbDB0JBFih/XPstmBeHIhTGEa/uY5jgj5xZkdh+DP8FwAA//94DFv3AAAABklEQVQDANreSTEI+d7fAAAAAElFTkSuQmCC";
+const FREEZE_ICON_IMAGE_URL =
+  "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none' stroke='%23111111' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'><line x1='8' y1='1.5' x2='8' y2='14.5'/><line x1='1.5' y1='8' x2='14.5' y2='8'/><line x1='3' y1='3' x2='13' y2='13'/><line x1='13' y1='3' x2='3' y2='13'/></svg>";
 
 export type GrabControlBarProps = {
   dragHandlePanHandlers?: GestureResponderHandlers;
+  isFreezeActive: boolean;
+  isFreezeCapturing: boolean;
   isSessionEnabled: boolean;
   isVisible: boolean;
   onHidden?: () => void;
+  onPressFreeze: () => void;
   onPressHide: () => void;
   onPressSelect: () => void;
   containerStyle?: StyleProp<ViewStyle>;
@@ -36,9 +41,12 @@ export type GrabControlBarProps = {
 
 export const GrabControlBar = ({
   dragHandlePanHandlers,
+  isFreezeActive,
+  isFreezeCapturing,
   isSessionEnabled,
   isVisible,
   onHidden,
+  onPressFreeze,
   onPressHide,
   onPressSelect,
   containerStyle,
@@ -104,6 +112,31 @@ export const GrabControlBar = ({
             >
               <Image source={{ uri: DRAG_ICON_IMAGE_URL }} style={styles.dragIcon} />
             </View>
+
+            <View style={styles.divider} />
+
+            <Pressable
+              accessibilityHint="Captures a frozen snapshot for inspection."
+              accessibilityLabel="Freeze screen"
+              accessibilityRole="button"
+              disabled={isFreezeCapturing}
+              hitSlop={8}
+              onPress={onPressFreeze}
+              style={({ pressed }) => [
+                styles.slot,
+                pressed && styles.pressedButton,
+                isFreezeCapturing && styles.disabledButton,
+              ]}
+            >
+              <Image
+                source={{ uri: FREEZE_ICON_IMAGE_URL }}
+                style={[
+                  styles.freezeIcon,
+                  isFreezeActive && styles.freezeIconActive,
+                  isFreezeCapturing && styles.freezeIconCapturing,
+                ]}
+              />
+            </Pressable>
 
             <View style={styles.divider} />
 
@@ -184,8 +217,21 @@ const styles = StyleSheet.create({
   inspectIconActive: {
     opacity: 0.72,
   },
+  freezeIcon: {
+    width: 16,
+    height: 16,
+  },
+  freezeIconActive: {
+    opacity: 0.9,
+  },
+  freezeIconCapturing: {
+    opacity: 0.4,
+  },
   arrowIcon: {
     width: 16,
     height: 16,
+  },
+  disabledButton: {
+    opacity: 0.6,
   },
 });

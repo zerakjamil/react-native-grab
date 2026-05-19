@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { getResolvedGrabSelectionOwnerId } from "./containers";
+import { captureGrabFreezeSnapshot, type GrabFreezeSnapshot } from "./freeze";
 
 type LocalGrabSelectionController = {
   closeSelectionMenu: () => void;
@@ -11,6 +12,12 @@ type GrabControllerState = {
   isMenuVisible: boolean;
   selectedOwnerId: string | null;
   selectionSessionOwnerId: string | null;
+  freeze: {
+    isActive: boolean;
+    isCapturing: boolean;
+    snapshot: GrabFreezeSnapshot | null;
+    error: string | null;
+  };
 };
 
 const localControllers = new Map<string, LocalGrabSelectionController>();
@@ -20,6 +27,12 @@ let state: GrabControllerState = {
   isMenuVisible: false,
   selectedOwnerId: null,
   selectionSessionOwnerId: null,
+  freeze: {
+    isActive: false,
+    isCapturing: false,
+    snapshot: null,
+    error: null,
+  },
 };
 
 const notify = () => {
@@ -139,9 +152,16 @@ export const toggleGrabMenu = () => {
     if (!isVisible) {
       stopAllSelections();
       return {
+        ...prevState,
         isMenuVisible: false,
         selectedOwnerId: null,
         selectionSessionOwnerId: null,
+        freeze: {
+          isActive: false,
+          isCapturing: false,
+          snapshot: null,
+          error: null,
+        },
       };
     }
 
@@ -150,4 +170,74 @@ export const toggleGrabMenu = () => {
       isMenuVisible: true,
     };
   });
+};
+
+export const startGrabFreeze = async () => {
+  if (state.freeze.isCapturing) {
+    return;
+  }
+
+  setState((prevState) => ({
+    ...prevState,
+    freeze: {
+      ...prevState.freeze,
+      isCapturing: true,
+      error: null,
+    },
+  }));
+
+  try {
+    const snapshot = await captureGrabFreezeSnapshot();
+    setState((prevState) => ({
+      ...prevState,
+      freeze: {
+        isActive: true,
+        isCapturing: false,
+        snapshot,
+        error: null,
+      },
+    }));
+
+    enableGrabbing();
+  } catch (error) {
+    console.error(
+      "[react-native-grab] Freeze capture failed. Ensure react-native-view-shot is installed.",
+    );
+    setState((prevState) => ({
+      ...prevState,
+      freeze: {
+        ...prevState.freeze,
+        isCapturing: false,
+        error: error instanceof Error ? error.message : "Freeze capture failed",
+      },
+    }));
+  }
+};
+
+export const stopGrabFreeze = () => {
+  stopAllSelections();
+  setState((prevState) => ({
+    ...prevState,
+    selectedOwnerId: null,
+    selectionSessionOwnerId: null,
+    freeze: {
+      isActive: false,
+      isCapturing: false,
+      snapshot: null,
+      error: null,
+    },
+  }));
+};
+
+export const toggleGrabFreeze = () => {
+  if (state.freeze.isCapturing) {
+    return;
+  }
+
+  if (state.freeze.isActive) {
+    stopGrabFreeze();
+    return;
+  }
+
+  void startGrabFreeze();
 };

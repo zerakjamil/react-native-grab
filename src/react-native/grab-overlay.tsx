@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  Image,
   NativeTouchEvent,
   PanResponder,
-  Pressable,
   StyleSheet,
   Text,
   View,
@@ -18,12 +18,15 @@ import {
   registerLocalGrabSelectionController,
   setGrabSelectionSessionOwner,
   showGrabSelectionMenu,
+  stopGrabFreeze,
   unregisterLocalGrabSelectionController,
+  useGrabControllerState,
 } from "./grab-controller";
 import { getDescription, getGrabSelectionTitle } from "./description";
 import { getRenderedBy, type RenderedByFrame } from "./get-rendered-by";
 import { findNodeAtPoint, measureInWindow } from "./measure";
 import { openStackFrameInEditor } from "./open";
+import { buildComponentPathLabel, getSerializedProps } from "./props";
 import type { BoundingClientRect, ReactNativeFiberNode } from "./types";
 
 type GrabResult = {
@@ -50,6 +53,7 @@ export const ReactNativeGrabOverlay = ({
   onPanHandlersChange,
 }: ReactNativeGrabOverlayProps) => {
   const isResolvedSelectionOwner = useIsResolvedGrabSelectionOwner(ownerId);
+  const grabControllerState = useGrabControllerState();
   const copyBadgeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [bounds, setBounds] = useState({ width: 0, height: 0 });
   const [state, setState] = useState({
@@ -58,6 +62,7 @@ export const ReactNativeGrabOverlay = ({
     isCopyBadgeVisible: false,
     selectedElement: null as SelectedGrabResult | null,
   });
+  const [showLayoutMetrics, setShowLayoutMetrics] = useState(false);
 
   const startSession = useCallback(() => {
     setState((prev) => ({
@@ -78,6 +83,7 @@ export const ReactNativeGrabOverlay = ({
 
   const closeSelectedElementMenu = useCallback(() => {
     hideGrabSelectionMenu(ownerId);
+    setShowLayoutMetrics(false);
     setState((prev) => {
       return {
         ...prev,
@@ -287,6 +293,59 @@ export const ReactNativeGrabOverlay = ({
     }
   }, [closeSelectedElementMenu, state.selectedElement]);
 
+  const handleCopyElementPath = useCallback(async () => {
+    const selectedElement = state.selectedElement;
+
+    if (!selectedElement) {
+      return;
+    }
+
+    const label = buildComponentPathLabel(selectedElement.elementName, selectedElement.frame);
+    closeSelectedElementMenu();
+
+    try {
+      await copyViaMetro(label);
+      showCopiedBadge();
+    } catch {
+      console.error(
+        "[react-native-grab] Copying failed. Ensure your Metro config is wrapped with withReactNativeGrab(...) and Metro has been restarted.",
+      );
+    }
+  }, [closeSelectedElementMenu, showCopiedBadge, state.selectedElement]);
+
+  const handleCopyProps = useCallback(async () => {
+    const selectedElement = state.selectedElement;
+
+    if (!selectedElement) {
+      return;
+    }
+
+    const propsText = getSerializedProps(selectedElement.result.fiberNode);
+    if (!propsText) {
+      return;
+    }
+
+    closeSelectedElementMenu();
+
+    try {
+      await copyViaMetro(propsText);
+      showCopiedBadge();
+    } catch {
+      console.error(
+        "[react-native-grab] Copying failed. Ensure your Metro config is wrapped with withReactNativeGrab(...) and Metro has been restarted.",
+      );
+    }
+  }, [closeSelectedElementMenu, showCopiedBadge, state.selectedElement]);
+
+  const handleToggleLayoutMetrics = useCallback(() => {
+    setShowLayoutMetrics((prev) => !prev);
+  }, []);
+
+  const handleUnfreeze = useCallback(() => {
+    stopGrabFreeze();
+    closeSelectedElementMenu();
+  }, [closeSelectedElementMenu]);
+
   const selectedElementMenuAnchor = useMemo(() => {
     if (!state.selectedElement) {
       return null;
@@ -300,12 +359,45 @@ export const ReactNativeGrabOverlay = ({
   }, [state.selectedElement]);
 
   const highlightedElement = state.grabbedElement ?? state.selectedElement?.result ?? null;
+  const freezeState = grabControllerState.freeze;
+
+  const statusBadgeText = useMemo(() => {
+    if (state.isCopyBadgeVisible) return "Element copied";
+    if (freezeState.isCapturing) return "Freezing screen...";
+    if (freezeState.error) return "Freeze failed";
+    if (freezeState.isActive) return "Frozen";
+    if (state.isSessionEnabled) return "Touch and move around to grab";
+    return null;
+  }, [
+    freezeState.error,
+    freezeState.isActive,
+    freezeState.isCapturing,
+    state.isCopyBadgeVisible,
+    state.isSessionEnabled,
+  ]);
+
+  const layoutMetrics = useMemo(() => {
+    if (!state.selectedElement) {
+      return null;
+    }
+
+    const rect = state.selectedElement.result.rect;
+    return {
+      x: Math.round(rect[0]),
+      y: Math.round(rect[1]),
+      width: Math.round(rect[2]),
+      height: Math.round(rect[3]),
+    };
+  }, [state.selectedElement]);
 
   if (
     !state.isSessionEnabled &&
     !state.isCopyBadgeVisible &&
     !state.grabbedElement &&
-    !state.selectedElement
+    !state.selectedElement &&
+    !freezeState.isActive &&
+    !freezeState.isCapturing &&
+    !freezeState.error
   ) {
     return null;
   }
@@ -325,15 +417,22 @@ export const ReactNativeGrabOverlay = ({
         });
       }}
     >
-      {state.isSessionEnabled && (
-        <View pointerEvents="none" style={styles.topBadge}>
-          <Text style={styles.topBadgeText}>Touch and move around to grab</Text>
+      {freezeState.isActive && freezeState.snapshot?.uri && (
+        <View pointerEvents="none" style={styles.freezeImageWrap}>
+          <Image
+            resizeMode="cover"
+            source={{ uri: freezeState.snapshot.uri }}
+            style={styles.freezeImage}
+          />
         </View>
       )}
 
-      {state.isCopyBadgeVisible && (
-        <View pointerEvents="none" style={styles.topBadge}>
-          <Text style={styles.topBadgeText}>Element copied</Text>
+      {statusBadgeText && (
+        <View
+          pointerEvents="none"
+          style={[styles.topBadge, freezeState.error && styles.topBadgeError]}
+        >
+          <Text style={styles.topBadgeText}>{statusBadgeText}</Text>
         </View>
       )}
 
@@ -350,6 +449,23 @@ export const ReactNativeGrabOverlay = ({
             },
           ]}
         />
+      )}
+
+      {showLayoutMetrics && layoutMetrics && (
+        <View
+          pointerEvents="none"
+          style={[
+            styles.metricsBadge,
+            {
+              left: Math.min(Math.max(8, layoutMetrics.x), Math.max(8, bounds.width - 160)),
+              top: Math.max(8, layoutMetrics.y - 28),
+            },
+          ]}
+        >
+          <Text style={styles.metricsText}>
+            {`x:${layoutMetrics.x} y:${layoutMetrics.y} w:${layoutMetrics.width} h:${layoutMetrics.height}`}
+          </Text>
+        </View>
       )}
 
       <ContextMenu
@@ -380,39 +496,27 @@ export const ReactNativeGrabOverlay = ({
             {state.selectedElement?.elementName}
           </Text>
         </View>
-        <View style={styles.selectionMenuActions}>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => void handleCopySelectedElement()}
-            style={({ pressed }) => [
-              styles.selectionMenuActionButton,
-              pressed && styles.selectionMenuActionButtonPressed,
-            ]}
-          >
-            <Text style={styles.selectionMenuActionText}>Copy</Text>
-          </Pressable>
-          <View style={styles.selectionMenuActionDivider} />
-          <Pressable
-            accessibilityRole="button"
-            disabled={!state.selectedElement?.frame?.file}
-            onPress={() => void handleOpenSelectedElement()}
-            style={({ pressed }) => [
-              styles.selectionMenuActionButton,
-              pressed &&
-                state.selectedElement?.frame?.file &&
-                styles.selectionMenuActionButtonPressed,
-            ]}
-          >
-            <Text
-              style={[
-                styles.selectionMenuActionText,
-                !state.selectedElement?.frame?.file && styles.selectionMenuActionTextDisabled,
-              ]}
-            >
-              Open
-            </Text>
-          </Pressable>
-        </View>
+        <ContextMenu.Item onPress={() => void handleCopySelectedElement()}>
+          Copy summary
+        </ContextMenu.Item>
+        <ContextMenu.Item onPress={() => void handleCopyElementPath()}>
+          Copy name + path
+        </ContextMenu.Item>
+        <ContextMenu.Item onPress={() => void handleCopyProps()}>Copy props JSON</ContextMenu.Item>
+        <ContextMenu.Item onPress={handleToggleLayoutMetrics}>
+          {showLayoutMetrics ? "Hide layout metrics" : "Show layout metrics"}
+        </ContextMenu.Item>
+        <ContextMenu.Item
+          disabled={!state.selectedElement?.frame?.file}
+          onPress={() => void handleOpenSelectedElement()}
+        >
+          Open in editor
+        </ContextMenu.Item>
+        {freezeState.isActive && (
+          <ContextMenu.Item destructive onPress={handleUnfreeze}>
+            Unfreeze
+          </ContextMenu.Item>
+        )}
       </ContextMenu>
     </View>
   );
@@ -438,11 +542,33 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "600",
   },
+  topBadgeError: {
+    backgroundColor: "rgba(188, 30, 30, 0.9)",
+  },
   highlight: {
     position: "absolute",
     backgroundColor: GRAB_HIGHLIGHT_FILL,
     borderWidth: 1,
     borderColor: GRAB_PRIMARY,
+  },
+  freezeImageWrap: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  freezeImage: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  metricsBadge: {
+    position: "absolute",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    backgroundColor: "rgba(17, 24, 39, 0.86)",
+    maxWidth: 220,
+  },
+  metricsText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "600",
   },
   selectionMenuHeader: {
     alignSelf: "stretch",

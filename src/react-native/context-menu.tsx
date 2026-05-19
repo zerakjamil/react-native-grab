@@ -7,6 +7,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type ReactElement,
   type ReactNode,
 } from "react";
 import {
@@ -69,6 +70,10 @@ export type ContextMenuItemProps = {
   destructive?: boolean;
   disabled?: boolean;
   onPress: () => void;
+};
+
+type ContextMenuComponent = ((props: ContextMenuProps) => ReactElement | null) & {
+  Item: (props: ContextMenuItemProps) => ReactElement;
 };
 
 const getAlignedLeft = (
@@ -159,7 +164,7 @@ const ContextMenuItem = ({
   );
 };
 
-export const ContextMenu = ({
+export const ContextMenu: ContextMenuComponent = ({
   anchor,
   bounds = null,
   children,

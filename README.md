@@ -21,11 +21,18 @@ Bridge the context gap: point at the exact native UI element, capture precise so
 - **Native Runtime Context**: Capture context directly from real React Native views with platform-aware source signals.
 - **Faster Agent Edits**: Remove the search phase for low-entropy UI changes like spacing, alignment, and copy updates.
 - **Metro Middleware Integration**: Wire once in Metro and send captured context to your host clipboard.
+- **Freeze & Inspect (optional)**: Capture a frozen snapshot for inspecting fast animations (requires `react-native-view-shot`).
 
 ## Installation
 
 ```bash
 npm install react-native-grab
+```
+
+To enable **Freeze & Inspect**, also install:
+
+```bash
+npm install react-native-view-shot
 ```
 
 ## Quick Start
@@ -35,6 +42,8 @@ npm install react-native-grab
 3. **If your app uses native navigators** (e.g. native stack, native tabs), **wrap each screen** with `ReactNativeGrabScreen`.
 4. **If your app uses React Native `<Modal>`s**, **wrap the content inside the Modal** with `ReactNativeGrabModal`.
 5. Open Dev Menu and choose `React Native Grab` to start selecting elements.
+
+When the Grab control pill is visible, tap the **freeze** icon to capture a snapshot and inspect without fast animations moving away.
 
 ## Quick Configuration Example
 
