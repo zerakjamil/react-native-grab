@@ -340,7 +340,27 @@ const extractStyleSummary = (props: Record<string, unknown> | null): string => {
   const style = props.style as Record<string, unknown> | undefined;
   if (!style || typeof style !== "object") return "";
   const entries: string[] = [];
-  const keys = ["flexDirection", "justifyContent", "alignItems", "flex", "padding", "margin", "backgroundColor", "borderWidth", "borderRadius", "width", "height", "minWidth", "minHeight", "position", "top", "left", "right", "bottom", "gap"];
+  const keys = [
+    "flexDirection",
+    "justifyContent",
+    "alignItems",
+    "flex",
+    "padding",
+    "margin",
+    "backgroundColor",
+    "borderWidth",
+    "borderRadius",
+    "width",
+    "height",
+    "minWidth",
+    "minHeight",
+    "position",
+    "top",
+    "left",
+    "right",
+    "bottom",
+    "gap",
+  ];
   for (const key of keys) {
     if (key in style && style[key] != null) {
       entries.push(`${key}: ${String(style[key])}`);
@@ -355,7 +375,8 @@ const resolvePrimarySource = (
   renderedBy: RenderedByFrame[],
 ): string | null => {
   const fiberSource = getFiberDebugSource(node);
-  if (fiberSource) return formatFrameLocation(fiberSource.file, fiberSource.line, fiberSource.column);
+  if (fiberSource)
+    return formatFrameLocation(fiberSource.file, fiberSource.line, fiberSource.column);
 
   if (hostFiber && hostFiber !== node) {
     const hostSource = getFiberDebugSource(hostFiber);
@@ -364,7 +385,8 @@ const resolvePrimarySource = (
 
   const framesWithFile = renderedBy.filter((f) => f.file);
   const sourceFrame = framesWithFile[0] ?? null;
-  if (sourceFrame) return formatFrameLocation(sourceFrame.file, sourceFrame.line, sourceFrame.column);
+  if (sourceFrame)
+    return formatFrameLocation(sourceFrame.file, sourceFrame.line, sourceFrame.column);
 
   return null;
 };
