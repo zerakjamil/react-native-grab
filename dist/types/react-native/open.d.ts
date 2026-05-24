@@ -1,6 +1,6 @@
 type OpenFramePayload = {
-  file: string;
-  lineNumber: number;
+    file: string;
+    lineNumber: number;
 };
 export declare const openStackFrameInEditor: (payload: OpenFramePayload) => Promise<void>;
 export {};

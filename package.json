@@ -1,6 +1,6 @@
 {
   "name": "react-native-grab-advanced",
-  "version": "1.4.0",
+  "version": "1.9.1",
   "description": "Touch-to-grab context for React Native agents.",
   "keywords": [
     "devtools",

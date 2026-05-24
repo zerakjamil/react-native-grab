@@ -8,6 +8,7 @@ const MAX_STACK_LINES = 6;
 const MAX_TEXT_LENGTH = 120;
 const MAX_ATTR_VALUE_LENGTH = 80;
 const MAX_ATTRS = 6;
+const MAX_CHILDREN_LINES = 4;
 
 const PRIORITY_ATTRS = [
   "testID",
@@ -136,6 +137,24 @@ const extractPriorityAttrs = (props: Record<string, unknown> | null): string => 
   return pairs.length > 0 ? ` ${pairs.join(" ")}` : "";
 };
 
+const extractPriorityAttrsAsJSON = (props: Record<string, unknown> | null): string => {
+  if (!props) return "";
+
+  const pairs: string[] = [];
+  for (const key of PRIORITY_ATTRS) {
+    if (pairs.length >= MAX_ATTRS) break;
+    const rawValue = props[key];
+    if (rawValue == null) continue;
+    const serialized =
+      typeof rawValue === "string"
+        ? `"${escapeAttr(truncate(rawValue as string, MAX_ATTR_VALUE_LENGTH))}"`
+        : String(rawValue);
+    pairs.push(`${key}: ${serialized}`);
+  }
+
+  return pairs.length > 0 ? `{ ${pairs.join(", ")} }` : "";
+};
+
 const getPreviewComponentName = (
   node: ReactNativeFiberNode,
   renderedBy: RenderedByFrame[],
@@ -244,13 +263,166 @@ export const getGrabSelectionTitle = (
   return hostLabel;
 };
 
+const getFiberDebugSource = (
+  fiber: ReactNativeFiberNode,
+): { file: string | null; line: number | null; column: number | null } | null => {
+  if (!fiber._debugSource?.fileName) return null;
+  return {
+    file: fiber._debugSource.fileName,
+    line: fiber._debugSource.lineNumber ?? null,
+    column: fiber._debugSource.columnNumber ?? null,
+  };
+};
+
+const getFiberDisplayName = (fiber: ReactNativeFiberNode | null): string => {
+  if (!fiber) return "(null)";
+  const t = fiber.type;
+  if (typeof t === "string") return t;
+  if (typeof t === "function") {
+    const fn = t as (() => unknown) & { displayName?: string; name?: string };
+    return fn.displayName || fn.name || "(anonymous)";
+  }
+  if (t && typeof t === "object") {
+    const obj = t as Record<string, unknown>;
+    if (typeof obj.displayName === "string") return obj.displayName;
+    if (typeof obj.render === "function") {
+      const r = obj.render as (() => unknown) & { displayName?: string; name?: string };
+      return r.displayName || r.name || "ForwardRef";
+    }
+    if (typeof obj.type === "function") {
+      const inner = obj.type as (() => unknown) & { displayName?: string; name?: string };
+      return inner.displayName || inner.name || "Memo";
+    }
+  }
+  return "(component)";
+};
+
+const collectFiberTextContent = (fiber: ReactNativeFiberNode | null, out: string[]) => {
+  if (!fiber) return;
+  const t = fiber.type;
+  if (t === "Text" || t === "RCTText") {
+    const props = fiber.memoizedProps;
+    if (props && "children" in props) {
+      collectPrimitiveText(props.children, out);
+    }
+  }
+  let child = fiber.child;
+  while (child) {
+    collectFiberTextContent(child, out);
+    child = child.sibling;
+  }
+};
+
+const getChildrenSummary = (fiber: ReactNativeFiberNode): string => {
+  const lines: string[] = [];
+  let child = fiber.child;
+  while (child) {
+    if (lines.length >= MAX_CHILDREN_LINES) {
+      lines.push("  ...");
+      break;
+    }
+    const name = getFiberDisplayName(child);
+    const textParts: string[] = [];
+    collectFiberTextContent(child, textParts);
+    if (textParts.length > 0) {
+      const text = textParts.join(" ").replace(/\s+/g, " ").trim();
+      lines.push(`  ${name}: "${truncate(text, 80)}"`);
+    } else {
+      lines.push(`  ${name}`);
+    }
+    child = child.sibling;
+  }
+  return lines.join("\n");
+};
+
+const extractStyleSummary = (props: Record<string, unknown> | null): string => {
+  if (!props) return "";
+  const style = props.style as Record<string, unknown> | undefined;
+  if (!style || typeof style !== "object") return "";
+  const entries: string[] = [];
+  const keys = ["flexDirection", "justifyContent", "alignItems", "flex", "padding", "margin", "backgroundColor", "borderWidth", "borderRadius", "width", "height", "minWidth", "minHeight", "position", "top", "left", "right", "bottom", "gap"];
+  for (const key of keys) {
+    if (key in style && style[key] != null) {
+      entries.push(`${key}: ${String(style[key])}`);
+    }
+  }
+  return entries.length > 0 ? `{ ${entries.join(", ")} }` : "";
+};
+
+const resolvePrimarySource = (
+  node: ReactNativeFiberNode,
+  hostFiber: ReactNativeFiberNode | null,
+  renderedBy: RenderedByFrame[],
+): string | null => {
+  const fiberSource = getFiberDebugSource(node);
+  if (fiberSource) return formatFrameLocation(fiberSource.file, fiberSource.line, fiberSource.column);
+
+  if (hostFiber && hostFiber !== node) {
+    const hostSource = getFiberDebugSource(hostFiber);
+    if (hostSource) return formatFrameLocation(hostSource.file, hostSource.line, hostSource.column);
+  }
+
+  const framesWithFile = renderedBy.filter((f) => f.file);
+  const sourceFrame = framesWithFile[0] ?? null;
+  if (sourceFrame) return formatFrameLocation(sourceFrame.file, sourceFrame.line, sourceFrame.column);
+
+  return null;
+};
+
 export const getDescription = async (node: ReactNativeFiberNode): Promise<string> => {
   let renderedBy = await getRenderedBy(node);
 
-  const preview = buildElementPreview(node, renderedBy);
-  const stackContext = buildStackContext(renderedBy);
-  const contextBlock = buildContextBlock(getGrabContextFromFiber(node));
+  const componentName = getPreviewComponentName(node, renderedBy);
+  const hostFiber = getHostFiber(node);
+  const hostType = getHostComponentName(hostFiber);
+  const props = getMemoizedProps(hostFiber);
+  const attrsJSON = extractPriorityAttrsAsJSON(props);
+  const text = extractTextPreview(props);
 
-  if (!stackContext) return `${preview}${contextBlock}`;
-  return `${preview}${stackContext}${contextBlock}`;
+  const primarySource = resolvePrimarySource(node, hostFiber, renderedBy);
+  const framesWithFile = renderedBy.filter((f) => f.file);
+  const childrenSummary = hostFiber ? getChildrenSummary(hostFiber) : "";
+  const styleSummary = extractStyleSummary(props);
+
+  const lines: string[] = [];
+
+  if (hostType && hostType !== "(unknown)" && hostType !== componentName) {
+    lines.push(`Element: ${hostType} (in ${componentName})`);
+  } else {
+    lines.push(`Element: ${componentName}`);
+  }
+  if (primarySource) {
+    lines.push(`Source: ${primarySource}`);
+  }
+  if (styleSummary) {
+    lines.push(`Style: ${styleSummary}`);
+  }
+  if (attrsJSON) {
+    lines.push(`Attrs: ${attrsJSON}`);
+  }
+  if (text) {
+    lines.push(`Text: "${text}"`);
+  }
+  if (childrenSummary) {
+    lines.push(`Children:`);
+    lines.push(childrenSummary);
+  }
+
+  if (framesWithFile.length > 0) {
+    lines.push("");
+    lines.push("Hierarchy:");
+    for (const f of framesWithFile) {
+      const loc = formatFrameLocation(f.file, f.line, f.column);
+      lines.push(`  ${f.name} (${loc})`);
+    }
+  }
+
+  const contextValue = getGrabContextFromFiber(node);
+  if (contextValue && Object.keys(contextValue).length > 0) {
+    lines.push("");
+    lines.push("Context:");
+    lines.push(`  ${JSON.stringify(contextValue)}`);
+  }
+
+  return lines.join("\n");
 };
