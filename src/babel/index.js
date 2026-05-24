@@ -109,9 +109,7 @@ module.exports = function reactNativeGrabBabelPlugin({ types: t }) {
               t.jsxAttribute(
                 t.jsxIdentifier("style"),
                 t.jsxExpressionContainer(
-                  t.objectExpression([
-                    t.objectProperty(t.identifier("flex"), t.numericLiteral(1)),
-                  ]),
+                  t.objectExpression([t.objectProperty(t.identifier("flex"), t.numericLiteral(1))]),
                 ),
               ),
             ],
