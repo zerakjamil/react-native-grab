@@ -1,6 +1,6 @@
 type CopyViaMetroOptions = {
-  endpoint?: string;
-  signal?: AbortSignal;
+    endpoint?: string;
+    signal?: AbortSignal;
 };
 export declare const copyViaMetro: (text: string, options?: CopyViaMetroOptions) => Promise<void>;
 export {};

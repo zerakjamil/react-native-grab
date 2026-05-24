@@ -452,7 +452,7 @@ export const ReactNativeGrabOverlay = ({
   const isFreezeBlocking = freezeState.isActive || freezeState.isCapturing;
   const isPanEnabled = state.isSessionEnabled && !isMenuOpen;
   const shouldBlockTouchesInOverlay = isFreezeBlocking && !isMenuOpen;
-  const overlayPointerEvents = isFreezeBlocking ? "auto" : "box-none";
+  const overlayPointerEvents = isFreezeBlocking && !isMenuOpen ? "auto" : "box-none";
   const overlayTouchHandlers = shouldBlockTouchesInOverlay
     ? isPanEnabled
       ? panResponder.panHandlers
