@@ -1,1 +1,1 @@
-{"version":3,"file":"patch-modal.d.ts","sourceRoot":"","sources":["../../../src/react-native/patch-modal.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,MAAM,OAAO,CAAC;AAI1B,eAAO,MAAM,qBAAqB,GAAI,sBAAsB,KAAK,CAAC,aAAa,CAAC,GAAG,CAAC,SA6BnF,CAAC"}
+{"version":3,"file":"patch-modal.d.ts","sourceRoot":"","sources":["../../../src/react-native/patch-modal.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,MAAM,OAAO,CAAC;AAI1B,eAAO,MAAM,qBAAqB,GAAI,sBAAsB,KAAK,CAAC,aAAa,CAAC,GAAG,CAAC,SAwDnF,CAAC"}

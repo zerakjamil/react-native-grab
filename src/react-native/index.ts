@@ -42,6 +42,14 @@ export const setFocusEffect: (impl: (cb: () => void) => void) => void = __DEV__
   ? require("./focus-effect").setFocusEffect
   : noop;
 
+export const patchAllModals: () => void = __DEV__
+  ? () => {
+      const patchModal = require("./patch-modal").patchReactNativeModal;
+      const ReactNativeGrabModal = require("./grab-modal").ReactNativeGrabModal;
+      patchModal(ReactNativeGrabModal);
+    }
+  : noop;
+
 if (__DEV__) {
   const patchModal = require("./patch-modal").patchReactNativeModal;
   patchModal(ReactNativeGrabModal);

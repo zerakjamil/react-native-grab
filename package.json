@@ -1,6 +1,6 @@
 {
   "name": "react-native-grab-advanced",
-  "version": "1.3.7",
+  "version": "1.4.0",
   "description": "Touch-to-grab context for React Native agents.",
   "keywords": [
     "devtools",
@@ -19,7 +19,8 @@
     "url": "https://github.com/zerakjamil/react-native-grab.git"
   },
   "files": [
-    "dist"
+    "dist",
+    "src/babel"
   ],
   "main": "./dist/cjs/react-native/index.js",
   "module": "./dist/esm/react-native/index.js",
@@ -39,6 +40,7 @@
       "require": "./dist/cjs/metro/index.js",
       "default": "./dist/esm/metro/index.js"
     },
+    "./babel": "./src/babel/index.js",
     "./package.json": "./package.json"
   },
   "scripts": {

@@ -26,8 +26,35 @@ export const patchReactNativeModal = (ReactNativeGrabModal: React.ComponentType<
     if (ModalModule.default) {
       ModalModule.default = PatchedModal;
     } else {
-      Object.assign(ModalModule, PatchedModal);
+      ModalModule.default = PatchedModal;
+      Object.keys(OriginalModal).forEach((key) => {
+        try {
+          (ModalModule as any)[key] = (OriginalModal as any)[key];
+        } catch {}
+      });
     }
+
+    const origCreateElement = React.createElement.bind(React);
+
+    (React as any).createElement = function patchedCreateElement(
+      type: any,
+      config: any,
+      ...children: any[]
+    ) {
+      if (type === OriginalModal) {
+        const grabWrapped = (origCreateElement as typeof React.createElement)(
+          ReactNativeGrabModal,
+          { style: { flex: 1 } },
+          ...children,
+        );
+        return (origCreateElement as typeof React.createElement)(
+          OriginalModal,
+          config,
+          grabWrapped,
+        );
+      }
+      return (origCreateElement as typeof React.createElement)(type, config, ...children);
+    };
   } catch (err) {
     console.warn("[react-native-grab] Failed to patch React Native Modal", err);
   }
